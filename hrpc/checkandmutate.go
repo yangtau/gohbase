@@ -6,16 +6,14 @@
 package hrpc
 
 import (
-	"fmt"
-
 	"github.com/tsuna/gohbase/filter"
 	"github.com/tsuna/gohbase/pb"
 	"google.golang.org/protobuf/proto"
 )
 
-// CheckAndPut performs a provided Put operation if the value specified
+// CheckAndMutate performs a provided Put operation if the value specified
 // by condition equals to the one set in the HBase.
-type CheckAndPut struct {
+type CheckAndMutate struct {
 	*Mutate
 
 	family    []byte
@@ -24,14 +22,11 @@ type CheckAndPut struct {
 	comparator *pb.Comparator
 }
 
-// NewCheckAndPut creates a new CheckAndPut request that will compare provided
+// NewCheckAndMutate creates a new CheckAndPut request that will compare provided
 // expectedValue with the on in HBase located at put's row and provided family:qualifier,
 // and if they are equal, perform the provided put request on the row
-func NewCheckAndPut(put *Mutate, family string,
-	qualifier string, expectedValue []byte) (*CheckAndPut, error) {
-	if put.mutationType != pb.MutationProto_PUT {
-		return nil, fmt.Errorf("'CheckAndPut' only takes 'Put' request")
-	}
+func NewCheckAndMutate(mut *Mutate, family string,
+	qualifier string, expectedValue []byte) (*CheckAndMutate, error) {
 
 	// The condition that needs to match for the edit to be applied.
 	exp := filter.NewByteArrayComparable(expectedValue)
@@ -42,10 +37,10 @@ func NewCheckAndPut(put *Mutate, family string,
 
 	// CheckAndPut is not batchable as MultiResponse doesn't return Processed field
 	// for Mutate Action
-	put.setSkipBatch(true)
+	mut.setSkipBatch(true)
 
-	return &CheckAndPut{
-		Mutate:     put,
+	return &CheckAndMutate{
+		Mutate:     mut,
 		family:     []byte(family),
 		qualifier:  []byte(qualifier),
 		comparator: cmp,
@@ -53,19 +48,20 @@ func NewCheckAndPut(put *Mutate, family string,
 }
 
 // ToProto converts the RPC into a protobuf message
-func (cp *CheckAndPut) ToProto() proto.Message {
+func (cp *CheckAndMutate) ToProto() proto.Message {
 	mutateRequest, _, _ := cp.toProto(false)
 	mutateRequest.Condition = &pb.Condition{
-		Row:         cp.key,
-		Family:      cp.family,
-		Qualifier:   cp.qualifier,
+		Row:       cp.key,
+		Family:    cp.family,
+		Qualifier: cp.qualifier,
+		// TODO: not only EQUAL
 		CompareType: pb.CompareType_EQUAL.Enum(),
 		Comparator:  cp.comparator,
 	}
 	return mutateRequest
 }
 
-func (cp *CheckAndPut) CellBlocksEnabled() bool {
+func (cp *CheckAndMutate) CellBlocksEnabled() bool {
 	// cellblocks are not supported for check and put request
 	return false
 }

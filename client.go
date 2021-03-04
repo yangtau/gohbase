@@ -276,7 +276,7 @@ func (c *client) mutate(m *hrpc.Mutate) (*hrpc.Result, error) {
 
 func (c *client) CheckAndPut(p *hrpc.Mutate, family string,
 	qualifier string, expectedValue []byte) (bool, error) {
-	cas, err := hrpc.NewCheckAndPut(p, family, qualifier, expectedValue)
+	cas, err := hrpc.NewCheckAndMutate(p, family, qualifier, expectedValue)
 	if err != nil {
 		return false, err
 	}
