@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+syntax = "proto2";
 // This file contains protocol buffers that are used for Client service.
 package pb;
 
-option java_package = "org.apache.hadoop.hbase.protobuf.generated";
+option java_package = "org.apache.hadoop.hbase.shaded.protobuf.generated";
 option java_outer_classname = "ClientProtos";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
@@ -29,7 +29,6 @@ import "HBase.proto";
 import "Filter.proto";
 import "Cell.proto";
 import "Comparator.proto";
-//import "MapReduce.proto";
 
 /**
  * The protocol buffer version of Authorizations.
@@ -64,8 +63,7 @@ enum Consistency {
 /**
  * The protocol buffer version of Get.
  * Unless existence_only is specified, return all the requested data
- * for the row that matches exactly, or the one that immediately
- * precedes it if closest_row_before is specified.
+ * for the row that matches exactly.
  */
 message Get {
   required bytes row = 1;
@@ -83,11 +81,14 @@ message Get {
   optional bool existence_only = 10 [default = false];
 
   // If the row to get doesn't exist, return the
-  // closest row before.
+  // closest row before. Deprecated. No longer used!
+  // Since hbase-2.0.0 but left in place so can test
+  // for Gets with this set and throw Exception.
   optional bool closest_row_before = 11 [default = false];
 
   optional Consistency consistency = 12 [default = STRONG];
   repeated ColumnFamilyTimeRange cf_time_range = 13;
+  optional bool load_column_families_on_demand = 14; /* DO NOT add defaults to load_column_families_on_demand. */
 }
 
 message Result {
@@ -106,13 +107,14 @@ message Result {
   //  in the query.
   optional bool exists = 3;
 
-  // Whether or not the results are coming from possibly stale data 
+  // Whether or not the results are coming from possibly stale data
   optional bool stale = 4 [default = false];
 
   // Whether or not the entire result could be returned. Results will be split when
   // the RPC chunk size limit is reached. Partial results contain only a subset of the
   // cells for a row and must be combined with a result containing the remaining cells
-  // to form a complete result
+  // to form a complete result. The equivalent flag in o.a.h.h.client.Result is
+  // mayHaveMoreCellsInRow.
   optional bool partial = 5 [default = false];
 }
 
@@ -136,10 +138,12 @@ message GetResponse {
  */
 message Condition {
   required bytes row = 1;
-  required bytes family = 2;
-  required bytes qualifier = 3;
-  required CompareType compare_type = 4;
-  required Comparator comparator = 5;
+  optional bytes family = 2;
+  optional bytes qualifier = 3;
+  optional CompareType compare_type = 4;
+  optional Comparator comparator = 5;
+  optional TimeRange time_range = 6;
+  optional Filter filter = 7;
 }
 
 
@@ -253,12 +257,22 @@ message Scan {
   optional uint32 store_limit = 11;
   optional uint32 store_offset = 12;
   optional bool load_column_families_on_demand = 13; /* DO NOT add defaults to load_column_families_on_demand. */
-  optional bool small = 14;
+  optional bool small = 14 [deprecated = true];
   optional bool reversed = 15 [default = false];
   optional Consistency consistency = 16 [default = STRONG];
   optional uint32 caching = 17;
   optional bool allow_partial_results = 18;
   repeated ColumnFamilyTimeRange cf_time_range = 19;
+  optional uint64 mvcc_read_point = 20 [default = 0];
+  optional bool include_start_row = 21 [default = true];
+  optional bool include_stop_row = 22 [default = false];
+  enum ReadType {
+    DEFAULT = 0;
+    STREAM = 1;
+    PREAD = 2;
+  }
+  optional ReadType readType = 23 [default = DEFAULT];
+  optional bool need_cursor_result = 24 [default = false];
 }
 
 /**
@@ -283,6 +297,16 @@ message ScanRequest {
   optional bool client_handles_heartbeats = 8;
   optional bool track_scan_metrics = 9;
   optional bool renew = 10 [default = false];
+  // if we have returned limit_of_rows rows to client, then close the scanner.
+  optional uint32 limit_of_rows = 11 [default = 0];
+}
+
+/**
+* Scan cursor to tell client where we are scanning.
+*
+ */
+message Cursor {
+  optional bytes row = 1;
 }
 
 /**
@@ -321,17 +345,21 @@ message ScanResponse {
   // reasons such as the size in bytes or quantity of results accumulated. This field
   // will true when more results exist in the current region.
   optional bool more_results_in_region = 8;
-  
+
   // This field is filled in if the server is sending back a heartbeat message.
   // Heartbeat messages are sent back to the client to prevent the scanner from
   // timing out. Seeing a heartbeat message communicates to the Client that the
   // server would have continued to scan had the time limit not been reached.
   optional bool heartbeat_message = 9;
-  
-  // This field is filled in if the client has requested that scan metrics be tracked.
-  // The metrics tracked here are sent back to the client to be tracked together with 
-  // the existing client side metrics.
-  //optional ScanMetrics scan_metrics = 10; // not in gohbase
+
+  // The mvcc read point which is used to open the scanner at server side. Client can
+  // make use of this mvcc_read_point when restarting a scanner to get a consistent view
+  // of a row.
+  optional uint64 mvcc_read_point = 11 [default = 0];
+
+  // If the Scan need cursor, return the row key we are scanning in heartbeat message.
+  // If the Scan doesn't need a cursor, don't set this field to reduce network IO.
+  optional Cursor cursor = 12;
 }
 
 /**
@@ -342,6 +370,11 @@ message BulkLoadHFileRequest {
   required RegionSpecifier region = 1;
   repeated FamilyPath family_path = 2;
   optional bool assign_seq_num = 3;
+  optional DelegationToken fs_token = 4;
+  optional string bulk_token = 5;
+  optional bool copy_file = 6 [default = false];
+  repeated string cluster_ids = 7;
+  optional bool replicate = 8 [default = true];
 
   message FamilyPath {
     required bytes family = 1;
@@ -351,6 +384,30 @@ message BulkLoadHFileRequest {
 
 message BulkLoadHFileResponse {
   required bool loaded = 1;
+}
+
+message DelegationToken {
+  optional bytes identifier = 1;
+  optional bytes password = 2;
+  optional string kind = 3;
+  optional string service = 4;
+}
+
+message PrepareBulkLoadRequest {
+  required TableName table_name = 1;
+  optional RegionSpecifier region = 2;
+}
+
+message PrepareBulkLoadResponse {
+  required string bulk_token = 1;
+}
+
+message CleanupBulkLoadRequest {
+  required string bulk_token = 1;
+  optional RegionSpecifier region = 2;
+}
+
+message CleanupBulkLoadResponse {
 }
 
 message CoprocessorServiceCall {
@@ -392,6 +449,7 @@ message RegionAction {
   // When set, run mutations as atomic unit.
   optional bool atomic = 2;
   repeated Action action = 3;
+  optional Condition condition = 4;
 }
 
 /*
@@ -399,7 +457,7 @@ message RegionAction {
 */
 message RegionLoadStats {
   // Percent load on the memstore. Guaranteed to be positive, between 0 and 100.
-  optional int32 memstoreLoad = 1 [default = 0];
+  optional int32 memStoreLoad = 1 [default = 0];
   // Percent JVM heap occupancy. Guaranteed to be positive, between 0 and 100.
   // We can move this to "ServerLoadStats" should we develop them.
   optional int32 heapOccupancy = 2 [default = 0];
@@ -436,6 +494,7 @@ message RegionActionResult {
   repeated ResultOrException resultOrException = 1;
   // If the operation failed globally for this region, this exception is set
   optional NameBytesPair exception = 2;
+  optional bool processed = 3;
 }
 
 /**
@@ -448,13 +507,16 @@ message RegionActionResult {
 message MultiRequest {
   repeated RegionAction regionAction = 1;
   optional uint64 nonceGroup = 2;
-  optional Condition condition = 3;
+  // Moved this to RegionAction in HBASE-8458. Keep it for backward compatibility. Need to remove
+  // it in the future.
+  optional Condition condition = 3 [deprecated=true];
 }
 
 message MultiResponse {
   repeated RegionActionResult regionActionResult = 1;
-  // used for mutate to indicate processed only
-  optional bool processed = 2;
+  // Moved this to RegionActionResult in HBASE-8458. Keep it for backward compatibility. Need to
+  // remove it in the future.
+  optional bool processed = 2 [deprecated=true];
   optional MultiRegionLoadStats regionStatistics = 3;
 }
 
@@ -472,9 +534,15 @@ service ClientService {
   rpc BulkLoadHFile(BulkLoadHFileRequest)
     returns(BulkLoadHFileResponse);
 
+  rpc PrepareBulkLoad(PrepareBulkLoadRequest)
+    returns (PrepareBulkLoadResponse);
+
+  rpc CleanupBulkLoad(CleanupBulkLoadRequest)
+    returns (CleanupBulkLoadResponse);
+
   rpc ExecService(CoprocessorServiceRequest)
     returns(CoprocessorServiceResponse);
-    
+
   rpc ExecRegionServerService(CoprocessorServiceRequest)
     returns(CoprocessorServiceResponse);
 

@@ -15,14 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+syntax = "proto2";
 package pb;
 
-option java_package = "org.apache.hadoop.hbase.protobuf.generated";
+option java_package = "org.apache.hadoop.hbase.shaded.protobuf.generated";
 option java_outer_classname = "ProcedureProtos";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
+import "google/protobuf/any.proto";
 import "ErrorHandling.proto";
 
 enum ProcedureState {
@@ -31,7 +33,8 @@ enum ProcedureState {
   WAITING = 3;              // The procedure is waiting on children to be completed
   WAITING_TIMEOUT = 4;      // The procedure is waiting a timout or an external event
   ROLLEDBACK = 5;           // The procedure failed and was rolledback
-  FINISHED = 6;             // The procedure execution is completed. may need a rollback if failed.
+  SUCCESS = 6;              // The procedure execution is completed successfully.
+  FAILED = 7;               // The procedure execution is failed, may need to rollback
 }
 
 /**
@@ -42,7 +45,7 @@ message Procedure {
   required string class_name = 1;        // full classname to be able to instantiate the procedure
   optional uint64 parent_id = 2;         // parent if not a root-procedure otherwise not set
   required uint64 proc_id = 3;
-  required uint64 start_time = 4;
+  required uint64 submitted_time = 4;
   optional string owner = 5;
 
   // internal "runtime" state
@@ -54,11 +57,18 @@ message Procedure {
   // user state/results
   optional ForeignExceptionMessage exception = 10;
   optional bytes result = 11;           // opaque (user) result structure
-  optional bytes state_data = 12;       // opaque (user) procedure internal-state
+  optional bytes state_data = 12;       // opaque (user) procedure internal-state - OBSOLATE
+  repeated google.protobuf.Any state_message = 15; // opaque (user) procedure internal-state
 
   // Nonce to prevent same procedure submit by multiple times
   optional uint64 nonce_group = 13 [default = 0];
   optional uint64 nonce = 14 [default = 0];
+
+  // whether the procedure has held the lock
+  optional bool locked = 16 [default = false];
+
+  // whether the procedure need to be bypassed
+  optional bool bypass = 17 [default = false];
 }
 
 /**
@@ -116,4 +126,5 @@ message ProcedureWALEntry {
   required Type type = 1;
   repeated Procedure procedure = 2;
   optional uint64 proc_id = 3;
+  repeated uint64 child_id = 4;
 }
