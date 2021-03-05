@@ -19,9 +19,10 @@ const (
 	// DefaultMaxVersions defualt value for maximum versions to return for scan queries
 	DefaultMaxVersions uint32 = 1
 	// MinTimestamp default value for minimum timestamp for scan queries
+	// TODO(yangtau): replace uint64 with int64
 	MinTimestamp uint64 = 0
 	// MaxTimestamp default value for maximum timestamp for scan queries
-	MaxTimestamp = math.MaxUint64
+	MaxTimestamp = uint64(math.MaxInt64)
 	// DefaultMaxResultSize Maximum number of bytes fetched when calling a scanner's
 	// next method. The default value is 2MB, which is good for 1ge networks.
 	// With faster and/or high latency networks this value should be increased.

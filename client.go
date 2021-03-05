@@ -37,8 +37,7 @@ type Client interface {
 	Delete(d *hrpc.Mutate) (*hrpc.Result, error)
 	Append(a *hrpc.Mutate) (*hrpc.Result, error)
 	Increment(i *hrpc.Mutate) (int64, error)
-	CheckAndPut(p *hrpc.Mutate, family string, qualifier string,
-		expectedValue []byte) (bool, error)
+	CheckAndMutate(c *hrpc.CheckAndMutate) (bool, *hrpc.Result, error)
 	Close()
 }
 
@@ -274,27 +273,21 @@ func (c *client) mutate(m *hrpc.Mutate) (*hrpc.Result, error) {
 	return hrpc.ToLocalResult(r.Result), nil
 }
 
-func (c *client) CheckAndPut(p *hrpc.Mutate, family string,
-	qualifier string, expectedValue []byte) (bool, error) {
-	cas, err := hrpc.NewCheckAndMutate(p, family, qualifier, expectedValue)
+func (c *client) CheckAndMutate(cm *hrpc.CheckAndMutate) (bool, *hrpc.Result, error) {
+	pbmsg, err := c.SendRPC(cm)
 	if err != nil {
-		return false, err
-	}
-
-	pbmsg, err := c.SendRPC(cas)
-	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	r, ok := pbmsg.(*pb.MutateResponse)
 	if !ok {
-		return false, fmt.Errorf("sendRPC returned a %T instead of MutateResponse", pbmsg)
+		return false, nil, fmt.Errorf("sendRPC returned a %T instead of MutateResponse", pbmsg)
 	}
 
 	if r.Processed == nil {
-		return false, fmt.Errorf("protobuf in the response didn't contain the field "+
-			"indicating whether the CheckAndPut was successful or not: %s", r)
+		return false, nil, fmt.Errorf("protobuf in the response didn't contain the field "+
+			"indicating whether the CheckAndMutate was successful or not: %s", r)
 	}
 
-	return r.GetProcessed(), nil
+	return r.GetProcessed(), hrpc.ToLocalResult(r.Result), nil
 }
