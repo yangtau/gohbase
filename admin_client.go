@@ -12,10 +12,10 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/tsuna/gohbase/hrpc"
-	"github.com/tsuna/gohbase/pb"
-	"github.com/tsuna/gohbase/region"
-	"github.com/tsuna/gohbase/zk"
+	"github.com/yangtau/gohbase/hrpc"
+	"github.com/yangtau/gohbase/pb"
+	"github.com/yangtau/gohbase/region"
+	"github.com/yangtau/gohbase/zk"
 )
 
 const (
