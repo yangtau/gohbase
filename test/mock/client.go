@@ -48,19 +48,19 @@ func (mr *MockClientMockRecorder) Append(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Append", reflect.TypeOf((*MockClient)(nil).Append), arg0)
 }
 
-// CheckAndPut mocks base method
-func (m *MockClient) CheckAndPut(arg0 *hrpc.Mutate, arg1, arg2 string, arg3 []byte) (bool, error) {
+// CheckAndMutate mocks base method
+func (m *MockClient) CheckAndMutate(arg0 *hrpc.Mutate, arg1, arg2 string, arg3 []byte) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckAndPut", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "CheckAndMutate", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CheckAndPut indicates an expected call of CheckAndPut
-func (mr *MockClientMockRecorder) CheckAndPut(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// CheckAndMutate indicates an expected call of CheckAndMutate
+func (mr *MockClientMockRecorder) CheckAndMutate(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckAndPut", reflect.TypeOf((*MockClient)(nil).CheckAndPut), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckAndMutate", reflect.TypeOf((*MockClient)(nil).CheckAndMutate), arg0, arg1, arg2, arg3)
 }
 
 // Close mocks base method

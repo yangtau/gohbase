@@ -19,10 +19,9 @@ const (
 	// DefaultMaxVersions defualt value for maximum versions to return for scan queries
 	DefaultMaxVersions uint32 = 1
 	// MinTimestamp default value for minimum timestamp for scan queries
-	// TODO(yangtau): replace uint64 with int64
-	MinTimestamp uint64 = 0
+	MinTimestamp int64 = 0
 	// MaxTimestamp default value for maximum timestamp for scan queries
-	MaxTimestamp = uint64(math.MaxInt64)
+	MaxTimestamp = math.MaxInt64
 	// DefaultMaxResultSize Maximum number of bytes fetched when calling a scanner's
 	// next method. The default value is 2MB, which is good for 1ge networks.
 	// With faster and/or high latency networks this value should be increased.
@@ -209,10 +208,12 @@ func (s *Scan) ToProto() proto.Message {
 	}
 
 	if s.fromTimestamp != MinTimestamp {
-		scan.Scan.TimeRange.From = &s.fromTimestamp
+		ts := uint64(s.fromTimestamp)
+		scan.Scan.TimeRange.From = &ts
 	}
 	if s.toTimestamp != MaxTimestamp {
-		scan.Scan.TimeRange.To = &s.toTimestamp
+		ts := uint64(s.toTimestamp)
+		scan.Scan.TimeRange.To = &ts
 	}
 	if s.reversed {
 		scan.Scan.Reversed = &s.reversed

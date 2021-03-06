@@ -120,7 +120,7 @@ func TestGetToProto(t *testing.T) {
 					ResultOffset(0),
 					MaxVersions(DefaultMaxVersions),
 					CacheBlocks(DefaultCacheBlocks),
-					TimeRangeUint64(MinTimestamp, MaxTimestamp),
+					TimeRangeInt64(MinTimestamp, MaxTimestamp),
 				)
 				return get
 			}(),
@@ -144,7 +144,7 @@ func TestGetToProto(t *testing.T) {
 					ResultOffset(7),
 					MaxVersions(4),
 					CacheBlocks(!DefaultCacheBlocks),
-					TimeRangeUint64(3456, 6789),
+					TimeRangeInt64(3456, 6789),
 				)
 				return get
 			}(),
@@ -297,7 +297,7 @@ func TestScanToProto(t *testing.T) {
 					ResultOffset(0),
 					MaxVersions(DefaultMaxVersions),
 					CacheBlocks(DefaultCacheBlocks),
-					TimeRangeUint64(MinTimestamp, MaxTimestamp),
+					TimeRangeInt64(MinTimestamp, MaxTimestamp),
 				)
 				return s
 			}(),
@@ -328,7 +328,7 @@ func TestScanToProto(t *testing.T) {
 					ResultOffset(7),
 					MaxVersions(89),
 					CacheBlocks(!DefaultCacheBlocks),
-					TimeRangeUint64(1024, 1738),
+					TimeRangeInt64(1024, 1738),
 				)
 				return s
 			}(),
@@ -362,7 +362,7 @@ func TestScanToProto(t *testing.T) {
 					ResultOffset(7),
 					MaxVersions(89),
 					CacheBlocks(!DefaultCacheBlocks),
-					TimeRangeUint64(1024, 1738),
+					TimeRangeInt64(1024, 1738),
 				)
 				return s
 			}(),
@@ -836,14 +836,14 @@ func TestMutate(t *testing.T) {
 					"cf": map[string][]byte{
 						"q": []byte("value"),
 					},
-				}, TimestampUint64(42))
+				}, TimestampInt64(42))
 			},
 			inStr: func() (*Mutate, error) {
 				return NewPutStr(ctx, tableStr, keyStr, map[string]map[string][]byte{
 					"cf": map[string][]byte{
 						"q": []byte("value"),
 					},
-				}, TimestampUint64(42))
+				}, TimestampInt64(42))
 			},
 			out: &pb.MutateRequest{
 				Region: rs,
@@ -914,14 +914,14 @@ func TestMutate(t *testing.T) {
 					"cf": map[string][]byte{
 						"q": []byte("value"),
 					},
-				}, TimestampUint64(42))
+				}, TimestampInt64(42))
 			},
 			inStr: func() (*Mutate, error) {
 				return NewDelStr(ctx, tableStr, keyStr, map[string]map[string][]byte{
 					"cf": map[string][]byte{
 						"q": []byte("value"),
 					},
-				}, TimestampUint64(42))
+				}, TimestampInt64(42))
 			},
 			out: &pb.MutateRequest{
 				Region: rs,
@@ -1101,12 +1101,12 @@ func TestMutate(t *testing.T) {
 			in: func() (*Mutate, error) {
 				return NewDel(ctx, table, key, map[string]map[string][]byte{
 					"cf": nil,
-				}, TimestampUint64(42))
+				}, TimestampInt64(42))
 			},
 			inStr: func() (*Mutate, error) {
 				return NewDelStr(ctx, tableStr, keyStr, map[string]map[string][]byte{
 					"cf": nil,
-				}, TimestampUint64(42))
+				}, TimestampInt64(42))
 			},
 			out: &pb.MutateRequest{
 				Region: rs,
@@ -1149,12 +1149,12 @@ func TestMutate(t *testing.T) {
 			in: func() (*Mutate, error) {
 				return NewDel(ctx, table, key, map[string]map[string][]byte{
 					"cf": nil,
-				}, TimestampUint64(42), DeleteOneVersion())
+				}, TimestampInt64(42), DeleteOneVersion())
 			},
 			inStr: func() (*Mutate, error) {
 				return NewDelStr(ctx, tableStr, keyStr, map[string]map[string][]byte{
 					"cf": nil,
-				}, TimestampUint64(42), DeleteOneVersion())
+				}, TimestampInt64(42), DeleteOneVersion())
 			},
 			out: &pb.MutateRequest{
 				Region: rs,
@@ -1199,14 +1199,14 @@ func TestMutate(t *testing.T) {
 					"cf": map[string][]byte{
 						"a": nil,
 					},
-				}, TimestampUint64(42), DeleteOneVersion())
+				}, TimestampInt64(42), DeleteOneVersion())
 			},
 			inStr: func() (*Mutate, error) {
 				return NewDelStr(ctx, tableStr, keyStr, map[string]map[string][]byte{
 					"cf": map[string][]byte{
 						"a": nil,
 					},
-				}, TimestampUint64(42), DeleteOneVersion())
+				}, TimestampInt64(42), DeleteOneVersion())
 			},
 			out: &pb.MutateRequest{
 				Region: rs,

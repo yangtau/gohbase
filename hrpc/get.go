@@ -96,11 +96,12 @@ func (g *Get) ToProto() proto.Message {
 	if g.maxVersions != DefaultMaxVersions {
 		get.Get.MaxVersions = &g.maxVersions
 	}
+	from, to := uint64(g.fromTimestamp), uint64(g.toTimestamp)
 	if g.fromTimestamp != MinTimestamp {
-		get.Get.TimeRange.From = &g.fromTimestamp
+		get.Get.TimeRange.From = &from
 	}
 	if g.toTimestamp != MaxTimestamp {
-		get.Get.TimeRange.To = &g.toTimestamp
+		get.Get.TimeRange.To = &to
 	}
 	if g.existsOnly {
 		get.Get.ExistenceOnly = proto.Bool(true)

@@ -54,7 +54,7 @@ type Mutate struct {
 	values map[string]map[string][]byte
 
 	ttl              []byte
-	timestamp        uint64
+	timestamp        int64
 	durability       DurabilityType
 	deleteOneVersion bool
 	skipbatch        bool
@@ -81,20 +81,20 @@ func TTL(t time.Duration) func(Call) error {
 // The time object passed will be rounded to a millisecond resolution, as by default,
 // if no timestamp is provided, HBase sets it to current time in milliseconds.
 // In order to have custom time precision, use TimestampUint64 call option for
-// mutation requests and corresponding TimeRangeUint64 for retrieval requests.
+// mutation requests and corresponding TimeRangeInt64 for retrieval requests.
 func Timestamp(ts time.Time) func(Call) error {
 	return func(o Call) error {
 		m, ok := o.(*Mutate)
 		if !ok {
 			return errors.New("'Timestamp' option can only be used with mutation queries")
 		}
-		m.timestamp = uint64(ts.UnixNano() / 1e6)
+		m.timestamp = ts.UnixNano() / 1e6
 		return nil
 	}
 }
 
-// TimestampUint64 sets timestamp for mutation queries.
-func TimestampUint64(ts uint64) func(Call) error {
+// TimestampInt64 sets timestamp for mutation queries.
+func TimestampInt64(ts int64) func(Call) error {
 	return func(o Call) error {
 		m, ok := o.(*Mutate)
 		if !ok {
@@ -410,7 +410,7 @@ func (m *Mutate) valuesToCellblocks() ([][]byte, int32, uint32) {
 	if m.timestamp == MaxTimestamp {
 		ts = math.MaxInt64 // Java's Long.MAX_VALUE use for HBase's LATEST_TIMESTAMP
 	} else {
-		ts = m.timestamp
+		ts = uint64(m.timestamp)
 	}
 	for k, v := range m.values {
 		// figure out mutation type
@@ -451,9 +451,9 @@ func (m *Mutate) valuesToCellblocks() ([][]byte, int32, uint32) {
 }
 
 func (m *Mutate) toProto(isCellblocks bool) (*pb.MutateRequest, [][]byte, uint32) {
-	var ts *uint64
+	var ts uint64
 	if m.timestamp != MaxTimestamp {
-		ts = &m.timestamp
+		ts = uint64(m.timestamp)
 	}
 
 	var cellblocks [][]byte
@@ -462,7 +462,7 @@ func (m *Mutate) toProto(isCellblocks bool) (*pb.MutateRequest, [][]byte, uint32
 		Row:        m.key,
 		MutateType: &m.mutationType,
 		Durability: pb.MutationProto_Durability(m.durability).Enum(),
-		Timestamp:  ts,
+		Timestamp:  &ts,
 	}
 
 	if isCellblocks {
@@ -473,7 +473,7 @@ func (m *Mutate) toProto(isCellblocks bool) (*pb.MutateRequest, [][]byte, uint32
 		mProto.AssociatedCellCount = &count
 	} else {
 		// otherwise, convert the values to protobuf
-		mProto.ColumnValue = m.valuesToProto(ts)
+		mProto.ColumnValue = m.valuesToProto(&ts)
 	}
 
 	if len(m.ttl) > 0 {

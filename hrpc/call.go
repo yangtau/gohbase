@@ -93,7 +93,7 @@ func SkipBatch() func(Call) error {
 type hasQueryOptions interface {
 	setFamilies(families map[string][]string)
 	setFilter(filter *pb.Filter)
-	setTimeRangeUint64(from, to uint64)
+	setTimeRangeInt64(from, to int64)
 	setMaxVersions(versions uint32)
 	setMaxResultsPerColumnFamily(maxresults uint32)
 	setResultOffset(offset uint32)

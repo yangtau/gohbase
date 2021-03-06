@@ -1198,7 +1198,7 @@ func TestIncrementParallel(t *testing.T) {
 	}
 }
 
-func TestCheckAndPut(t *testing.T) {
+func TestCheckAndMutate(t *testing.T) {
 	c := gohbase.NewClient(*host)
 	defer c.Close()
 
@@ -1235,14 +1235,14 @@ func TestCheckAndPut(t *testing.T) {
 			t.Fatalf("NewPutStr returned an error: %v", err)
 		}
 
-		casRes, err := c.CheckAndPut(putRequest, ef, eq, tt.inExpectedValue)
+		casRes, err := c.CheckAndMutate(putRequest, ef, eq, tt.inExpectedValue)
 
 		if err != nil {
-			t.Fatalf("CheckAndPut error: %s", err)
+			t.Fatalf("CheckAndMutate error: %s", err)
 		}
 
 		if casRes != tt.out {
-			t.Errorf("CheckAndPut with put values=%q and expectedValue=%q returned %v, want %v",
+			t.Errorf("CheckAndMutate with put values=%q and expectedValue=%q returned %v, want %v",
 				tt.inValues, tt.inExpectedValue, casRes, tt.out)
 		}
 	}
@@ -1250,20 +1250,20 @@ func TestCheckAndPut(t *testing.T) {
 	// TODO: check the resulting state by performing a Get request
 }
 
-func TestCheckAndPutNotPut(t *testing.T) {
+func TestCheckAndMutateNotPut(t *testing.T) {
 	key := "row101"
 	c := gohbase.NewClient(*host)
 	defer c.Close()
 	values := map[string]map[string][]byte{"cf": map[string][]byte{"a": []byte("lol")}}
 
 	appRequest, err := hrpc.NewAppStr(context.Background(), table, key, values)
-	_, err = c.CheckAndPut(appRequest, "cf", "a", []byte{})
+	_, err = c.CheckAndMutate(appRequest, "cf", "a", []byte{})
 	if err == nil {
-		t.Error("CheckAndPut: should not allow anything but Put request")
+		t.Error("CheckAndMutate: should not allow anything but Put request")
 	}
 }
 
-func TestCheckAndPutParallel(t *testing.T) {
+func TestCheckAndMutateParallel(t *testing.T) {
 	c := gohbase.NewClient(*host)
 	defer c.Close()
 
@@ -1271,16 +1271,16 @@ func TestCheckAndPutParallel(t *testing.T) {
 
 	values := map[string]map[string][]byte{"cf": map[string][]byte{"a": []byte("1")}}
 	capTestFunc := func(p *hrpc.Mutate, ch chan bool) {
-		casRes, err := c.CheckAndPut(p, "cf", "a", []byte{})
+		casRes, err := c.CheckAndMutate(p, "cf", "a", []byte{})
 
 		if err != nil {
-			t.Errorf("CheckAndPut error: %s", err)
+			t.Errorf("CheckAndMutate error: %s", err)
 		}
 
 		ch <- casRes
 	}
 
-	// make 10 pairs of CheckAndPut requests
+	// make 10 pairs of CheckAndMutate requests
 	for i := 0; i < 10; i++ {
 		ch := make(chan bool, 2)
 		putRequest1, err := hrpc.NewPutStr(
@@ -1301,11 +1301,11 @@ func TestCheckAndPutParallel(t *testing.T) {
 		second := <-ch
 
 		if first && second {
-			t.Error("CheckAndPut: both requests cannot succeed")
+			t.Error("CheckAndMutate: both requests cannot succeed")
 		}
 
 		if !first && !second {
-			t.Error("CheckAndPut: both requests cannot fail")
+			t.Error("CheckAndMutate: both requests cannot fail")
 		}
 	}
 }

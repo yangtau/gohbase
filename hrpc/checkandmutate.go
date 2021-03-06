@@ -23,8 +23,8 @@ type CheckAndMutate struct {
 	op            *filter.CompareType
 	comparator    *pb.Comparator
 	filter        *pb.Filter
-	fromTimestamp uint64
-	toTimestamp   uint64
+	fromTimestamp int64
+	toTimestamp   int64
 }
 
 // NewCheckAndMutate creates a new CheckAndMutate request that will compare provided
@@ -87,7 +87,7 @@ func NewMutateIfMatch(mut *Mutate, f filter.Filter) (*CheckAndMutate, error) {
 }
 
 // SetTimeRange sets time range for cm
-func (cm *CheckAndMutate) SetTimeRange(from, to uint64) error {
+func (cm *CheckAndMutate) SetTimeRange(from, to int64) error {
 	if from > to {
 		return fmt.Errorf("Invalid time range: (%v, %v)", from, to)
 	}
@@ -113,6 +113,7 @@ func (cm *CheckAndMutate) SetFilter(f filter.Filter) error {
 // ToProto converts the RPC into a protobuf message
 func (cm *CheckAndMutate) ToProto() proto.Message {
 	mutateRequest, _, _ := cm.toProto(false)
+	from, to := uint64(cm.fromTimestamp), uint64(cm.toTimestamp)
 	mutateRequest.Condition = &pb.Condition{
 		Row:         cm.key,
 		Family:      cm.family,
@@ -121,8 +122,8 @@ func (cm *CheckAndMutate) ToProto() proto.Message {
 		Comparator:  cm.comparator,
 		Filter:      cm.filter,
 		TimeRange: &pb.TimeRange{
-			From: &cm.fromTimestamp,
-			To:   &cm.toTimestamp,
+			From: &from,
+			To:   &to,
 		},
 	}
 	return mutateRequest

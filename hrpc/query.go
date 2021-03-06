@@ -18,8 +18,8 @@ import (
 type baseQuery struct {
 	families      map[string][]string
 	filter        *pb.Filter
-	fromTimestamp uint64
-	toTimestamp   uint64
+	fromTimestamp int64
+	toTimestamp   int64
 	maxVersions   uint32
 	storeLimit    uint32
 	storeOffset   uint32
@@ -43,7 +43,7 @@ func (bq *baseQuery) setFamilies(families map[string][]string) {
 func (bq *baseQuery) setFilter(filter *pb.Filter) {
 	bq.filter = filter
 }
-func (bq *baseQuery) setTimeRangeUint64(from, to uint64) {
+func (bq *baseQuery) setTimeRangeInt64(from, to int64) {
 	bq.fromTimestamp = from
 	bq.toTimestamp = to
 }
@@ -89,21 +89,21 @@ func Filters(f filter.Filter) func(Call) error {
 // TimeRange is used as a parameter for request creation. Adds TimeRange constraint to a request.
 // It will get values in range [from, to[ ('to' is exclusive).
 func TimeRange(from, to time.Time) func(Call) error {
-	return TimeRangeUint64(uint64(from.UnixNano()/1e6), uint64(to.UnixNano()/1e6))
+	return TimeRangeInt64(from.UnixNano()/1e6, to.UnixNano()/1e6)
 }
 
-// TimeRangeUint64 is used as a parameter for request creation.
+// TimeRangeInt64 is used as a parameter for request creation.
 // Adds TimeRange constraint to a request.
 // from and to should be in milliseconds
 // // It will get values in range [from, to[ ('to' is exclusive).
-func TimeRangeUint64(from, to uint64) func(Call) error {
+func TimeRangeInt64(from, to int64) func(Call) error {
 	return func(hc Call) error {
 		if c, ok := hc.(hasQueryOptions); ok {
 			if from >= to {
 				// or equal is becuase 'to' is exclusive
 				return errors.New("'from' timestamp is greater or equal to 'to' timestamp")
 			}
-			c.setTimeRangeUint64(from, to)
+			c.setTimeRangeInt64(from, to)
 			return nil
 		}
 		return errors.New("'TimeRange' option can only be used with Get or Scan request")

@@ -76,10 +76,10 @@ func TestTimeRangeOption(t *testing.T) {
 		}
 
 		from, to := g.fromTimestamp, g.toTimestamp
-		if fromExp := uint64(tcase.from.UnixNano() / 1e6); from != fromExp {
+		if fromExp := (tcase.from.UnixNano() / 1e6); from != fromExp {
 			t.Errorf("expected from time %d, got from time %d", fromExp, from)
 		}
-		if toExp := uint64(tcase.to.UnixNano() / 1e6); to != toExp {
+		if toExp := (tcase.to.UnixNano() / 1e6); to != toExp {
 			t.Errorf("expected to time %d, got to time %d", toExp, to)
 		}
 
