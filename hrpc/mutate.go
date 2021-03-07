@@ -451,18 +451,16 @@ func (m *Mutate) valuesToCellblocks() ([][]byte, int32, uint32) {
 }
 
 func (m *Mutate) toProto(isCellblocks bool) (*pb.MutateRequest, [][]byte, uint32) {
-	var ts uint64
-	if m.timestamp != MaxTimestamp {
-		ts = uint64(m.timestamp)
-	}
-
 	var cellblocks [][]byte
 	var size uint32
 	mProto := &pb.MutationProto{
 		Row:        m.key,
 		MutateType: &m.mutationType,
 		Durability: pb.MutationProto_Durability(m.durability).Enum(),
-		Timestamp:  &ts,
+	}
+	ts := uint64(m.timestamp)
+	if m.timestamp != MaxTimestamp {
+		mProto.Timestamp = &ts
 	}
 
 	if isCellblocks {
